@@ -1,8 +1,8 @@
 >📋  A template README.md for code accompanying a Machine Learning paper
 
-# My Paper Title
+# Probabilistic Robustness for Free? Revisiting Its Training with Benchmarking
 
-This repository is the official implementation of [My Paper Title](https://arxiv.org/abs/2030.12345). 
+This repository is the official implementation of [Probabilistic Robustness for Free? Revisiting Its Training with Benchmarking](https://arxiv.org/abs/2030.12345). 
 
 >📋  Optional: include a graphic explaining your approach/main result, bibtex entry, link to demos, blog posts and tutorials
 
@@ -21,7 +21,25 @@ pip install -r requirements.txt
 To train the model(s) in the paper, run this command:
 
 ```train
-python train.py --input-data <path_to_data> --alpha 10 --beta 20
+python main.py \
+    --dataset CIFAR10 \
+    --data_root ./dataset/cifar_10 \
+    --model_name resnet18 \
+    --input_size 32 \
+    --model_depth 28 \
+    --model_width 10 \
+    --num_class 10 \
+    --lr 0.1 \
+    --batch_size 256 \
+    --weight_decay 5e-4  \
+    --epochs 100 \
+    --save_path new_out/cifar10_res18/AT_Clean \
+    --attack Clean \
+    --attack_steps 10 \
+    --attack_eps 8.0 \
+    --attack_lr 2 \
+    --phase train \
+    --beta 6.0 
 ```
 
 >📋  Describe how to train the models, with example commands on how to train the models in your paper, including the full training procedure and appropriate hyperparameters.
@@ -31,7 +49,25 @@ python train.py --input-data <path_to_data> --alpha 10 --beta 20
 To evaluate my model on ImageNet, run:
 
 ```eval
-python eval.py --model-file mymodel.pth --benchmark imagenet
+python main.py \
+    --dataset CIFAR10 \
+    --data_root ./dataset/cifar_10 \
+    --model_name resnet18 \
+    --input_size 32 \
+    --model_depth 28 \
+    --model_width 10 \
+    --num_class 10 \
+    --lr 0.1 \
+    --batch_size 256 \
+    --weight_decay 5e-4  \
+    --epochs 100 \
+    --save_path new_out/cifar10_res18/AT_Clean \
+    --attack Clean \
+    --attack_steps 10 \
+    --attack_eps 8.0 \
+    --attack_lr 2 \
+    --phase eval \
+    --beta 6.0 
 ```
 
 >📋  Describe how to evaluate the trained models on benchmarks reported in the paper, give commands that produce the results (section below).

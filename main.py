@@ -25,20 +25,15 @@ import argparse
 def get_args():
     parser = argparse.ArgumentParser(description="Configuration for Training and Evaluation")
 
-    # General settings
     parser.add_argument('--dataset', type=str, default='CIFAR10', choices=['MNIST','CIFAR10', 'CIFAR100', 'svhn', 'TinyImageNet'], help='training dataset')
     parser.add_argument('--data_root', type=str, default='./dataset/cifar_10', help='Path to dataset root')
     parser.add_argument('--model_name', type=str, default='resnet18', help='Model name (e.g., resnet18, WRN)')
     parser.add_argument('--input_size', default=32, type=int, help='input_size')
     parser.add_argument('--model_depth', type=int, default=50, help='Depth of the model (if applicable)')
     parser.add_argument('--model_width', type=int, default=2, help='Width of the model (if applicable)')
-    parser.add_argument('--num_class', type=int, default=10, help='Number of classes')
-    
+    parser.add_argument('--num_class', type=int, default=10, help='Number of classes') 
     parser.add_argument('--patch', type=int, default=4, help='Number of classes')
     parser.add_argument('--cvar', type=int, default=10, help='Number of classes')
-
-
-    # Training settings
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--batch_size', type=int, default=256, help='Batch size')
     parser.add_argument('--weight_decay', type=float, default=0.0005, help='Weight decay')
@@ -46,8 +41,6 @@ def get_args():
     parser.add_argument('--save_path', type=str, default='output_model/test_res_cifar10_200', help='Path to save the model')
     parser.add_argument('--resume', action='store_true', help='Flag to resume training from a checkpoint')
     parser.add_argument('--phase', type=str, default='train', choices=['train', 'eval'], help='stage of running')
-
-    # Attack settings
     parser.add_argument('--attack', type=str, default='PGD', choices=['corruption_laplace', 'corruption_gaussian', 'TERM', 'EVaR', 'pgd_origin','ERM_DataAug','ALP', 'KL', 'CLP', 'CVaR_loss_autograd', 'PGD_uniform', 'Clean', 'PGD', 'FGSM', 'PR', 'Corruption','TRADES', 'MART', 'CVaR'], help='Type of attack')
     parser.add_argument('--beta', type=float, default=6.0, help='trades balanced parameter')
     parser.add_argument('--attack_steps', type=int, default=7, help='Number of attack steps')
@@ -202,8 +195,8 @@ def train(args, save_path):
                                         beta=0.5, M=args.cvar)
             
             elif args.attack == 'EVaR':
-                mu = torch.zeros_like(x, requires_grad=False).to(x.device)            # center at 0
-                sigma = torch.ones_like(x, requires_grad=False).to(x.device) * 0.5    # moderate spread
+                mu = torch.zeros_like(x, requires_grad=False).to(x.device)            
+                sigma = torch.ones_like(x, requires_grad=False).to(x.device) * 0.5    
                 loss, logits = evar_risk_averse_step(model, x, y, mu, sigma, gamma=0.05, epsilon=0.1,
                           K=5, alpha=0.01, alpha_zeta=0.1, shape="linear", M=10, zeta_init=10.0)
                 
@@ -270,7 +263,6 @@ if __name__ == '__main__':
     trainloader, testloader = data_prepare(args)
     optimizer = optim.SGD(model.parameters(), args.lr, momentum=0.9, weight_decay=args.weight_decay)
     lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[75, 90], gamma=0.1)
-    # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[36, 39], gamma=0.1)
     criterion = nn.CrossEntropyLoss().to(device)
     epoch = 0
 
@@ -319,10 +311,6 @@ if __name__ == '__main__':
         args.attack_steps = 20
         evaluate_PGD(args, model, optimizer, log_file=eval_file)
         evaluate_cw(args, model, optimizer, log_file=eval_file)
-
-        # args.attack_steps = 100
-        # evaluate_PGD(args, model, optimizer, log_file=eval_file)
-
         evaluate_PR(model, log_file=eval_file)
 
         evaluate_aa(args, model, testloader, log_file=eval_file) 

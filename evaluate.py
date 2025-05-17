@@ -37,67 +37,6 @@ train_loader = torch.utils.data.DataLoader(
 
 
 
-
-# x_min = torch.tensor([0.0]).cuda()
-# x_max = torch.tensor([1.0]).cuda()
-
-# transform = T.Compose([
-#     T.ToTensor(),  
-# ])
-
-# train_loader = torch.utils.data.DataLoader(
-#     torchvision.datasets.MNIST(root="./dataset/MNIST", train=True, download=True, transform=transform)
-#     , batch_size=1000, shuffle=False, num_workers=8
-# )
-# test_loader = torch.utils.data.DataLoader(
-#     torchvision.datasets.MNIST(root="./dataset/MNIST", train=False, download=True, transform=transform)
-#     ,batch_size=1000, shuffle=False, num_workers=8
-# )
-
-
-# x_min = torch.tensor([0.0, 0.0, 0.0]).cuda()  
-# x_max = torch.tensor([1.0, 1.0, 1.0]).cuda()
-
-# transform_test = T.Compose([
-#     T.ToTensor()
-# ])
-
-# train_loader = torch.utils.data.DataLoader(
-#     TinyImageNet("./dataset/tiny-imagenet", split='train',  transform=transform_test, download=True),
-#     batch_size=1000, shuffle=False, num_workers=8
-# )
-
-# test_loader = torch.utils.data.DataLoader(
-#     TinyImageNet("./dataset/tiny-imagenet", split='val',  transform=transform_test, download=True),
-#     batch_size=1000, shuffle=False, num_workers=8
-# )
-
-
-
-# x_min = torch.tensor([0.0, 0.0, 0.0]).cuda()  
-# x_max = torch.tensor([1.0, 1.0, 1.0]).cuda()
-
-# transform_test = T.Compose([
-#     T.ToTensor()
-# ])
-
-# train_loader = torch.utils.data.DataLoader(
-#     torchvision.datasets.SVHN(root="./dataset/svhn", split='train', download=True, transform=transform_test)
-#     , batch_size=1000, shuffle=False, num_workers=8
-# )
-
-# test_loader = torch.utils.data.DataLoader(
-#     torchvision.datasets.SVHN(root="./dataset/svhn", split='test', download=True, transform=transform_test)
-#     , batch_size=1000, shuffle=False, num_workers=8
-# )
-
-
-
-
-
-
-
-
 def evaluate_aa(args, model, testloader, log_file):
     l = [x for (x, y) in testloader]
     x_test = torch.cat(l, 0)
@@ -169,16 +108,14 @@ def cw_attack(args, model, optimizer, x, y):
         x_adv.requires_grad = True
         optimizer.zero_grad()
         logits = model(x_adv)  
-        loss = cw_loss(args, logits, y)  # torch.Size([256, 100])   torch.Size([256])
+        loss = cw_loss(args, logits, y)  
         
         loss.backward()
         grad = x_adv.grad.detach()
         grad = grad.sign()
 
-        # Update adversarial example
         x_adv = x_adv + (args.attack_lr/255) * grad
 
-        # Projection to the epsilon-ball
         x_adv = x + torch.clamp(x_adv - x, min=-args.attack_eps/255, max=args.attack_eps/255)
         x_adv = x_adv.detach()
         x_adv = torch.clamp(x_adv, min=0, max=1).detach()
@@ -217,24 +154,23 @@ def evaluate_cw(args, model, optimizer, log_file):
 def run_prob(x, y, model, eps, sample_id, distribute):
     def prop(x):
         model.eval()
-        y = model(x)  #  torch.Size([batch, 10])
+        y = model(x)  
         y_diff = torch.cat((y[:,:x_class], y[:,(x_class+1):]),dim=1) - y[:,x_class].unsqueeze(-1)
         y_diff, _ = y_diff.max(dim=1)
-        return y_diff  # >0 means AE
+        return y_diff
 
     def brute_force(prop, distribute, count_iterations=1):
         count_above, count_total, count_particles = int(0), int(0), int(100)
 
         for i in range(count_iterations):
             prior = distribution[distribute]
-            x = prior.sample(torch.Size([count_particles]))  # torch.Size([batch, 3, 32, 32])
+            x = prior.sample(torch.Size([count_particles]))  
             
             x = torch.clamp(x, x_sample - eps, x_sample + eps)
             x = torch.clamp(x, min=x_min.view(3, 1, 1), max=x_max.view(3, 1, 1))
-            # x = torch.clamp(x, min=x_min.view(1, 1, 1), max=x_max.view(1, 1, 1))
             
-            s_x = prop(x).squeeze(-1)   # print(s_x.shape)  torch.Size([10])
-            count_above += int((s_x >= 0).float().sum().item())  # the number of AE
+            s_x = prop(x).squeeze(-1) 
+            count_above += int((s_x >= 0).float().sum().item()) 
             count_total += count_particles
 
         return count_above, count_total
@@ -242,24 +178,9 @@ def run_prob(x, y, model, eps, sample_id, distribute):
     x_sample = x[sample_id]  
     x_class = y[sample_id]
     
-    # prior_uni = dist.Uniform(  # MNIST
-    #     low=torch.max(x_sample - eps * (x_max - x_min).view(1, 1, 1), x_min.view(1, 1, 1)),
-    #     high=torch.min(x_sample + eps * (x_max - x_min).view(1, 1, 1), x_max.view(1, 1, 1))
-    # )
-    
-    # prior_norm = dist.Normal(
-    #     loc=x_sample,  
-    #     scale=eps * (x_max - x_min).view(1, 1, 1)  
-    # )
-
-    # prior_lap = dist.Laplace(
-    #     loc=x_sample,  
-    #     scale=eps * (x_max - x_min).view(1, 1, 1)  
-    # )
 
 
-
-    prior_uni = dist.Uniform(   # CIFAR, SVHN, Tiny-ImageNet
+    prior_uni = dist.Uniform(  
         low=torch.max(x_sample - eps * (x_max - x_min).view(3, 1, 1), x_min.view(3, 1, 1)),
         high=torch.min(x_sample + eps * (x_max - x_min).view(3, 1, 1), x_max.view(3, 1, 1))
     )
@@ -278,9 +199,7 @@ def run_prob(x, y, model, eps, sample_id, distribute):
 
     
  
-    input = x_sample.view(1, 3, 32, 32)  # CIFAR, SVHN
-    # input = x_sample.view(1, 1, 28, 28)  # MNIST
-    # input = x_sample.view(1, 3, 64, 64)    # Tiny-ImageNet
+    input = x_sample.view(1, 3, 32, 32)  
     s_x = prop(input).squeeze(-1)  
 
     if s_x.item() < 0:
@@ -291,17 +210,11 @@ def run_prob(x, y, model, eps, sample_id, distribute):
         return -1, -1
 
     
-    # with torch.no_grad():
-    #     AEs, total = brute_force(prop, distribute, count_iterations=1)
-    # return AEs, total
-    
     
 
 
 def func_pr(data_loader, radius, model, log_file, distribute, mode):
-    x = torch.zeros(10000, 3, 32, 32).cuda()  #  CIFAR, SVHN
-    # x = torch.zeros(10000, 1, 28, 28).cuda()  #  MNIST
-    # x = torch.zeros(10000, 3, 64, 64).cuda()  #  Tiny-ImageNet
+    x = torch.zeros(10000, 3, 32, 32).cuda() 
     y = torch.zeros(10000, dtype=torch.long).cuda()
     sample_num = 10000
 
@@ -382,8 +295,6 @@ def evaluate_PR(model, log_file):
     radius = [round(8/255, 2), 0.08, 0.1, 0.12, 0.15]
 
     distribution(model, log_file, radius, distribute = 'Uniform')
-    # distribution(model, log_file, radius, distribute = 'Normal')
-    # distribution(model, log_file, radius, distribute = 'Laplace')
     
 
 

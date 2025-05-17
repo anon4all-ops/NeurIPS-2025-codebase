@@ -84,7 +84,7 @@ Our model achieves the following performance on :
 <p align="center">
     <img src="docs/main_result.png" width="600px"/>
 </p>
-
+For more empirical results and theoretical analysis, please refer to the main paper and appendix.
 
 ## Contributing
 

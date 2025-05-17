@@ -70,10 +70,11 @@ python main.py \
 
 ## Pre-trained Models
 
-You can download pretrained models here:
+You can download pre-trained models here:
 
-- [My model](https://drive.google.com/mymodel.pth) 
+- [Models](https://drive.google.com/mymodel.pth) *(coming soon)*
 
+We will release all models after the review process.
 
 
 ## Results

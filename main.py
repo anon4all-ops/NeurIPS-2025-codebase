@@ -193,16 +193,7 @@ def train(args, save_path):
                                         epsilon=args.attack_eps/255,
                                         attack_steps=5,
                                         beta=0.5, M=args.cvar)
-            
-            elif args.attack == 'EVaR':
-                mu = torch.zeros_like(x, requires_grad=False).to(x.device)            
-                sigma = torch.ones_like(x, requires_grad=False).to(x.device) * 0.5    
-                loss, logits = evar_risk_averse_step(model, x, y, mu, sigma, gamma=0.05, epsilon=0.1,
-                          K=5, alpha=0.01, alpha_zeta=0.1, shape="linear", M=10, zeta_init=10.0)
-                
-            elif args.attack == 'TERM':
-                loss, logits = TERM(model, x, y, t=2.0)
-            
+        
             elif args.attack == 'ALP':
 
                 loss, logits = ALP(model, x, y, optimizer, step_size=args.attack_lr/255, epsilon=args.attack_eps/255, attack_steps=10)

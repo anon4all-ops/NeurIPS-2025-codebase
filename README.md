@@ -88,4 +88,15 @@ Our model achieves the following performance on :
 
 ## Contributing
 
->📋  Pick a licence and describe how to contribute to your code repository. 
+We welcome contributions to this repository!
+
+If you'd like to contribute:
+
+1. Fork the repository.
+2. Open a pull request describing your changes.
+
+For any major changes, please open an issue first to discuss what you would like to change.
+
+## 📄 License
+
+This code is released under the [MIT License](LICENSE).

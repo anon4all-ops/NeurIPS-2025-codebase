@@ -300,66 +300,56 @@ def evaluate_PR(model, log_file):
 
 
 
+def func_Prob(args, data_loader, model, log_file):
+    x = torch.zeros(10000, 3, 32, 32).cuda()
+    y = torch.zeros(10000, dtype=torch.long).cuda()
+    for idx, (data, target) in enumerate(data_loader):
+        if idx <= 9:
+            data, target = data.float().cuda(), target.long().cuda()
+            x[(idx*1000):((idx+1)*1000),:,:,:] = data
+            y[(idx*1000):((idx+1)*1000)] = target
 
+    pr, result, correct , all_count = [], {}, 0, 0
+    with open(log_file, 'a+') as file:
+        eps = args.attack_eps / 255
+        for idx in tqdm(range(10000)):
+            AEs, samples = run_prob(x, y, model, eps, idx)
+            if AEs >= 0:
+                correct += samples - AEs
+                all_count += samples
+                pr.append( (samples - AEs) / samples)
 
+        result['Aug.Acc'] = round( (correct / all_count) * 100, 2) 
 
+        q_values = [0.2, 0.1, 0.05, 0.01]
+        for quantile in q_values:
+            threshold = 1 - quantile
+            filtered_pr = [p for p in pr if p > threshold]
+            result[f"Prob.Acc_{quantile}"] = round( (len(filtered_pr) / len(pr)) * 100, 2)  
 
+        pr_ = np.array(pr)  
+        mean_value = np.mean(pr_)  
+        std_dev = np.std(pr_, ddof=0)  
+        result['Mean/Std'] = f"{str(round(mean_value * 100, 2))}/{str(round(std_dev * 100, 2))}"
+        print(result)
+        file.write(str(result) + '\n\n')
+    return result
 
-
-
-
+def evalute_ProbAcc(args, model, log_file):
+    result_train = func_Prob(args, train_loader, model, log_file)
+    result_test = func_Prob(args, test_loader, model, log_file)
+    result = {}
+    for key in list(result_train)[:-1]:
+        result[key] = round(result_train[key] - result_test[key], 2)
     
-# def func_Prob(args, data_loader, model, log_file):
-#     x = torch.zeros(10000, 3, 32, 32).cuda()
-#     y = torch.zeros(10000, dtype=torch.long).cuda()
-#     for idx, (data, target) in enumerate(data_loader):
-#         if idx <= 9:
-#             data, target = data.float().cuda(), target.long().cuda()
-#             x[(idx*1000):((idx+1)*1000),:,:,:] = data
-#             y[(idx*1000):((idx+1)*1000)] = target
-
-#     pr, result, correct , all_count = [], {}, 0, 0
-#     with open(log_file, 'a+') as file:
-#         eps = args.attack_eps / 255
-#         for idx in tqdm(range(10000)):
-#             AEs, samples = run_prob(x, y, model, eps, idx)
-#             if AEs >= 0:
-#                 correct += samples - AEs
-#                 all_count += samples
-#                 pr.append( (samples - AEs) / samples)
-
-#         result['Aug.Acc'] = round( (correct / all_count) * 100, 2) 
-
-#         q_values = [0.2, 0.1, 0.05, 0.01]
-#         for quantile in q_values:
-#             threshold = 1 - quantile
-#             filtered_pr = [p for p in pr if p > threshold]
-#             result[f"Prob.Acc_{quantile}"] = round( (len(filtered_pr) / len(pr)) * 100, 2)  
-
-#         pr_ = np.array(pr)  
-#         mean_value = np.mean(pr_)  
-#         std_dev = np.std(pr_, ddof=0)  
-#         result['Mean/Std'] = f"{str(round(mean_value * 100, 2))}/{str(round(std_dev * 100, 2))}"
-#         print(result)
-#         file.write(str(result) + '\n\n')
-#     return result
-
-# def evalute_ProbAcc(args, model, log_file):
-#     result_train = func_Prob(args, train_loader, model, log_file)
-#     result_test = func_Prob(args, test_loader, model, log_file)
-#     result = {}
-#     for key in list(result_train)[:-1]:
-#         result[key] = round(result_train[key] - result_test[key], 2)
-    
-#     with open(log_file, 'a+') as file: 
-#         file.write("gap error: ProbAcc:\n")
-#         file.write(str(result) + '\n\n')
-#         file.write("*"*100 + "\n")
+    with open(log_file, 'a+') as file: 
+        file.write("gap error: ProbAcc:\n")
+        file.write(str(result) + '\n\n')
+        file.write("*"*100 + "\n")
         
 
 
-'''
-# original evaluate Prob.Acc(γ)
+
 def evalute_ProbAcc(args, model, testloader, log_file):
     eps = args.attack_eps/255
     n_aug_samples = 100
@@ -370,7 +360,7 @@ def evalute_ProbAcc(args, model, testloader, log_file):
                 accuracy_per_datum > (1 - q) * 100.,
                 100. * torch.ones_like(accuracy_per_datum),
                 torch.zeros_like(accuracy_per_datum))
-            return beta_quantile_acc_per_datum.mean().item()  # tensor([  0.,   0.,   0., 100.,   0., 100., 100.,   0.])
+            return beta_quantile_acc_per_datum.mean().item()  
 
         return_dict = {}
         correct, total = 0, 0
@@ -383,19 +373,19 @@ def evalute_ProbAcc(args, model, testloader, log_file):
                 delta = 2 * eps * torch.rand_like(x) - eps
                 x_adv = torch.clamp(x + delta, 0, 1) 
                 
-                logits = model(x_adv)  # torch.Size([256, 10])
-                preds = logits.argmax(dim=1, keepdim=True)  # torch.Size([256, 1]) 
-                correct_preds = preds.eq(y.view_as(preds))  # torch.Size([256, 1]) bool
+                logits = model(x_adv) 
+                preds = logits.argmax(dim=1, keepdim=True)  
+                correct_preds = preds.eq(y.view_as(preds))  
                 batch_correct_ls.append(correct_preds.float())
                 correct += correct_preds.sum().item()
                 total += x.size(0)
             
-            batch_correct = torch.sum(torch.hstack(batch_correct_ls), dim=1)  # torch.Size([256])     tensor([100., 100.,   0., 100.]
+            batch_correct = torch.sum(torch.hstack(batch_correct_ls), dim=1)  
             correct_per_datum.append(batch_correct)
 
         accuracy_per_datum = 100. * torch.hstack(correct_per_datum) / n_aug_samples
 
-        return_dict = {'Aug-Accuracy': 100. * correct / total}  # do not exclude the wrong classified class
+        return_dict = {'Aug-Accuracy': 100. * correct / total} 
         return_dict.update({
                 f'{q}-Prob.Acc': quantile_accuracy(q, accuracy_per_datum)
                 for q in [0.2, 0.1, 0.05, 0.01]
@@ -403,5 +393,5 @@ def evalute_ProbAcc(args, model, testloader, log_file):
         
         print(return_dict)
         file.write(str(return_dict) + '\n\n')
-'''
+
         

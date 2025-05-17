@@ -160,7 +160,7 @@ def run_prob(x, y, model, eps, sample_id, distribute):
         return y_diff
 
     def brute_force(prop, distribute, count_iterations=1):
-        count_above, count_total, count_particles = int(0), int(0), int(100)
+        count_above, count_total, count_particles = int(0), int(0), int(10000)
 
         for i in range(count_iterations):
             prior = distribution[distribute]
@@ -219,10 +219,9 @@ def func_pr(data_loader, radius, model, log_file, distribute, mode):
     sample_num = 10000
 
     for idx, (data, target) in enumerate(data_loader):
-        if idx <= 9:
-            data, target = data.float().cuda(), target.long().cuda()
-            x[(idx*1000):((idx+1)*1000),:,:,:] = data
-            y[(idx*1000):((idx+1)*1000)] = target
+        data, target = data.float().cuda(), target.long().cuda()
+        x[(idx*1000):((idx+1)*1000),:,:,:] = data
+        y[(idx*1000):((idx+1)*1000)] = target
 
     result_Prob, result_pr = [], {}
     with open(log_file, 'a+') as file:   
@@ -347,8 +346,6 @@ def evalute_ProbAcc(args, model, log_file):
         file.write(str(result) + '\n\n')
         file.write("*"*100 + "\n")
         
-
-
 
 def evalute_ProbAcc(args, model, testloader, log_file):
     eps = args.attack_eps/255

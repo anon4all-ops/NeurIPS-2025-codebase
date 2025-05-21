@@ -21,6 +21,7 @@
     }
     h2 {
       color: #222;
+      text-align: center;
       font-size: 2em;
     }
     h3 {
@@ -102,7 +103,7 @@
   
   <div class="section">
     <h2>Experiment Results</h2>
-    <p>We evaluate using attack success rate (ASR) on several models.</p>
+    <p>All existing robustness benchmarks focus exclusively on AR, while our PRBench is the first benchmark for PR. The models under evaluation spans three major types of architectures: (1) plain CNNs like VGG; (2) residual CNNs like ResNet; and (3) transformer-based models including Vision Transformer (ViT) and Data-efficient Image Transformer (DeiT). We train a diverse set of models, including VGG-19, SimpleCNN ( 4-layer CNN), ResNet-18, ResNet-34, Wide-ResNet-28-10, ViT (Small/Base), and DeiT (Tiny/Small). In total, 164 models are trained on 5 standard datasets: MNIST, SVHN, CIFAR-10, CIFAR-100.</p>
     <figure style="text-align: center; margin: 30px 0;">
     <img src="./assets/main_result.jpg" alt="PRBench Overview" style="max-width: 100%; height: auto;">
 <!--     <figcaption style="font-size: 0.9em; color: #555; margin-top: 8px;"> -->
